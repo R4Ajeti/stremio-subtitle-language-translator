@@ -1,0 +1,77 @@
+from datetime import datetime
+from pathlib import Path
+import re
+
+from constants import DEFAULT_CHAR_LIMIT_INT, DEFAULT_OUTPUT_FOLDER_PATH_STR
+
+
+class SubtitleFileManager:
+    def __init__(self, inputFilePathStr):
+        self.inputFilePathStr = inputFilePathStr
+        self.subtitleTextStr = ""
+        self.subtitleFrameList = []
+        self.currentFrameIndexInt = 0
+        self.newlineStr = "\n"
+        self.emptyStr = ""
+
+    def readSrtByFilename(self):
+        inputPathObj = Path(self.inputFilePathStr)
+        self.subtitleTextStr = inputPathObj.read_text(encoding="utf-8")
+        if "\r\n" in self.subtitleTextStr:
+            self.newlineStr = "\r\n"
+        self.subtitleFrameList = self._splitIntoFrames(self.subtitleTextStr)
+        self.currentFrameIndexInt = 0
+        return self.subtitleTextStr
+
+    def getChunkGenerator(self, charLimitInt=DEFAULT_CHAR_LIMIT_INT):
+        if not self.subtitleFrameList:
+            self.readSrtByFilename()
+
+        self.currentFrameIndexInt = 0
+
+        while self.currentFrameIndexInt < len(self.subtitleFrameList):
+            chunkFrameList = []
+            currentCharCountInt = 0
+
+            while self.currentFrameIndexInt < len(self.subtitleFrameList):
+                subtitleFrameStr = self.subtitleFrameList[self.currentFrameIndexInt]
+                projectedLengthInt = currentCharCountInt + len(subtitleFrameStr)
+
+                if projectedLengthInt > charLimitInt and chunkFrameList:
+                    break
+
+                chunkFrameList.append(subtitleFrameStr)
+                currentCharCountInt = projectedLengthInt
+                self.currentFrameIndexInt += 1
+
+                if currentCharCountInt >= charLimitInt:
+                    break
+
+            yield "".join(chunkFrameList)
+
+
+    def writeSubtitleTextToFile(self, subtitleTextStr, outputFolderPathStr=DEFAULT_OUTPUT_FOLDER_PATH_STR, preFixStr="", postFixStr=""):
+        inputPathObj = Path(self.inputFilePathStr)
+        outputFolderPathObj = Path(outputFolderPathStr)
+        outputFolderPathObj.mkdir(parents=True, exist_ok=True)
+        timestampStr = datetime.now().strftime("%Y-%m-%d--%H-%M")
+        if postFixStr:
+            postFixStr = f"-{postFixStr}"
+        if preFixStr:
+            preFixStr = f"{preFixStr}-"
+        outputFileNameStr = f"{preFixStr}{inputPathObj.stem}{postFixStr}-{timestampStr}.srt"
+        outputFilePathObj = outputFolderPathObj / outputFileNameStr
+        outputFilePathObj.write_text(f"{subtitleTextStr}", encoding="utf-8")
+        return str(outputFilePathObj)
+    
+    def write(self, *args, **kwargs):
+        return self.writeSubtitleTextToFile(*args, **kwargs)
+
+    def _splitIntoFrames(self, subtitleTextStr):
+        if not subtitleTextStr.strip():
+            return []
+        subtitleFrameList = re.findall(r".*?(?:\r?\n\r?\n+|$)", subtitleTextStr, flags=re.DOTALL)
+        subtitleFrameList = [frameStr for frameStr in subtitleFrameList if frameStr.strip()]
+        return subtitleFrameList
+
+

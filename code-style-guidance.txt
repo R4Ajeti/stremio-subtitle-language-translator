@@ -1,0 +1,28 @@
+Code Style Requirements:
+
+Complete, production-ready Python script with class-based architecture
+CamelCase naming convention throughout
+No inline comments (code should be self-documenting)
+Consistent variable naming:
+Lists: append List suffix (e.g., categoryNameList)
+Integers: append Int suffix (e.g., videoCountInt)
+Strings: append Str suffix (e.g., filePathStr)
+Dict: append Dict suffix (e.g., subtitleDict)
+The rest: append Obj suffix
+Use descriptive class structures for code organization
+Employ long, meaningful function and variable names for clarity
+
+Importing Style
+Should follow diamond shape based on impor text char length
+We have 3 type of imports the order is as follows: 
+First are built in python package
+Second installed python package
+Third are our created custom classes package
+After each different import type a new line should follow
+
+After import we have constant variables that are uppercase and snake Case
+
+
+
+
+
