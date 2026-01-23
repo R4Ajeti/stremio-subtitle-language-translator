@@ -1,8 +1,9 @@
 
 
 import random
+import re
 
-from constants import DEFAULT_TRANSLATE_URL_STR, SOURCE_TEXT_AREA_SELECTOR_STR, TARGET_TEXT_SELECTOR_STR, DEFAULT_CHECK_FRAME_STR, USER_AGENT_LIST
+from constants import DEFAULT_TRANSLATE_URL_STR, SOURCE_TEXT_AREA_SELECTOR_STR, TARGET_TEXT_SELECTOR_STR, DEFAULT_CHECK_FRAME_STR, USER_AGENT_LIST, SUBTITLE_CHARACTER_PER_LINE_MIN_INT, SUBTITLE_CHARACTER_PER_LINE_MAX_INT
 
 
 def getRandomUserAgent():
@@ -94,8 +95,15 @@ class GoogleTranslateAutomation:
             
             a = 2
     
+    async def lineConstructSentence(self, lineStr):
+        # if lineStr contain ['.', '!', '?'], we assume it's the end of a sentence and add a space after it.
+        # in case it's already there, we don't add another space.
+        lineStr = re.sub(r'([.!?])(?!\s)', r'\1 ', lineStr)
+        lineStr = ' '.join(lineStr.split())
+        return lineStr
     
     async def subFrameBodyLineProcess(self, lineStr):
+        lineStr = await self.lineConstructSentence(lineStr)
         return lineStr
     
     async def subFrameBodyProcess(self, currSubFrameBodyList):
@@ -161,7 +169,7 @@ class GoogleTranslateAutomation:
             else:
                 subChunkList.append(subFrameStr)
         
-        subChunkStr = "\n\n".join(subChunkList)
+        subChunkStr = f"\n\n".join(subChunkList)
             
         return subChunkStr
     

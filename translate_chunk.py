@@ -37,7 +37,7 @@ async def main(noDriverModuleObj):
     inputFilePathStr = sys.argv[1] if len(sys.argv) > 1 else ""
     outputPathArgStr = sys.argv[2] if len(sys.argv) > 2 else ""
     charLimitArgStr = sys.argv[3] if len(sys.argv) > 3 else ""
-    inputFilePathStr = "Predators 2025 1080p AMZN WEB-DL DDP5 1 H 264-BiOMA.srt"
+    inputFilePathStr = "input/Black-Mirror-season-2/Black Mirror - 2x01 - Be Right Back.WEB-DL.FoV.en.srt"
     if not inputFilePathStr:
         print(buildUsageMessage())
         return
@@ -53,14 +53,16 @@ async def main(noDriverModuleObj):
     chunkSubStr = subtitleFileManagerObj.emptyStr.join(chunkSubList)
     # subtitleFileManagerObj.write(chunkData)
     
+    only = None
+    
     
     translateAutomationObj = GoogleTranslateAutomation(noDriverModuleObj)
     await translateAutomationObj.start()
     subtitleFileManagerObj.readSrtByFilename()
-    totalChunkCountInt = len(chunkSubList[:3])
+    totalChunkCountInt = len(chunkSubList[:only])
     processedChunkList = []
     
-    for chunkIndexInt, chunkStr in enumerate(chunkSubList[:3]):
+    for chunkIndexInt, chunkStr in enumerate(chunkSubList[:only]):
         translatedChunkStr = await translateAutomationObj.translateChunk(DEFAULT_CHECK_FRAME_STR+chunkStr)
         processedChunkList.append(translatedChunkStr)
         progressBarStr = formatProgressBar(chunkIndexInt + 1, totalChunkCountInt)
@@ -69,10 +71,9 @@ async def main(noDriverModuleObj):
     if totalChunkCountInt:
         sys.stdout.write("\n")
         sys.stdout.flush()
-    newlineStr = subtitleFileManagerObj.newlineStr
-    processedSubtitleTextStr = subtitleFileManagerObj.emptyStr.join(processedChunkList)
+    processedSubtitleTextStr = f"{subtitleFileManagerObj.newlineStr}{subtitleFileManagerObj.newlineStr}".join(processedChunkList)
     processedSubtitleTextStr.replace(": ", ":")
-    subtitleFileManagerObj.write(processedSubtitleTextStr, postFixStr="test")
+    subtitleFileManagerObj.write(processedSubtitleTextStr, postFixStr="al")
     await translateAutomationObj.stop()
     
     
