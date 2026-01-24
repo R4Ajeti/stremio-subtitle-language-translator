@@ -1,11 +1,11 @@
-from pathlib import Path
 import importlib
-import asyncio
 import random
 import sys
+from pathlib import Path
 
 
 from google_translate_automation import GoogleTranslateAutomation
+from subtitle_compliance_manager import SubtitleComplianceManager
 from subtitle_file_manager import SubtitleFileManager
 
 from constants import USER_AGENT_LIST, DEFAULT_CHECK_FRAME_STR
@@ -37,7 +37,7 @@ async def main(noDriverModuleObj):
     inputFilePathStr = sys.argv[1] if len(sys.argv) > 1 else ""
     outputPathArgStr = sys.argv[2] if len(sys.argv) > 2 else ""
     charLimitArgStr = sys.argv[3] if len(sys.argv) > 3 else ""
-    inputFilePathStr = "input/Black-Mirror-season-2/Black Mirror - 2x01 - Be Right Back.WEB-DL.FoV.en.srt"
+    inputFilePathStr = inputFilePathStr if inputFilePathStr else "input/Black-Mirror-season-2/Black Mirror - 2x01 - Be Right Back.WEB-DL.FoV.en.srt"
     if not inputFilePathStr:
         print(buildUsageMessage())
         return
@@ -72,7 +72,9 @@ async def main(noDriverModuleObj):
         sys.stdout.write("\n")
         sys.stdout.flush()
     processedSubtitleTextStr = f"{subtitleFileManagerObj.newlineStr}{subtitleFileManagerObj.newlineStr}".join(processedChunkList)
-    processedSubtitleTextStr.replace(": ", ":")
+    processedSubtitleTextStr = processedSubtitleTextStr.replace(": ", ":")
+    subtitleComplianceManagerObj = SubtitleComplianceManager()
+    processedSubtitleTextStr = subtitleComplianceManagerObj.applyComplianceToSrtText(processedSubtitleTextStr)
     subtitleFileManagerObj.write(processedSubtitleTextStr, postFixStr="al")
     await translateAutomationObj.stop()
     
