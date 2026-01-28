@@ -6,20 +6,26 @@ from constants import DEFAULT_CHAR_LIMIT_INT, DEFAULT_OUTPUT_FOLDER_PATH_STR
 
 
 class SubtitleFileManager:
+    emptyStr = ""
+    newlineStr = "\n"
+    newlineDosStr = "\n\r"
+    
     def __init__(self, inputFilePathStr):
         self.inputFilePathStr = inputFilePathStr
         self.subtitleTextStr = ""
         self.subtitleFrameList = []
         self.currentFrameIndexInt = 0
-        self.newlineStr = "\n"
-        self.emptyStr = ""
+        
+        self.emptyStr = SubtitleFileManager.emptyStr
+        self.newlineStr = SubtitleFileManager.newlineStr
+        self.newlineDosStr = SubtitleFileManager.newlineDosStr
 
     def readSrtByFilename(self):
         inputPathObj = Path(self.inputFilePathStr)
         self.subtitleTextStr = inputPathObj.read_text(encoding="utf-8")
         if "\r\n" in self.subtitleTextStr:
             self.newlineStr = "\r\n"
-        self.subtitleFrameList = self._splitIntoFrames(self.subtitleTextStr)
+        self.subtitleFrameList = self.splitIntoFrame(self.subtitleTextStr)
         self.currentFrameIndexInt = 0
         return self.subtitleTextStr
 
@@ -49,6 +55,12 @@ class SubtitleFileManager:
 
             yield "".join(chunkFrameList)
 
+    def splitIntoFrame(self, subtitleTextStr):
+        if not subtitleTextStr.strip():
+            return []
+        subtitleFrameList = re.findall(r".*?(?:\r?\n\r?\n+|$)", subtitleTextStr, flags=re.DOTALL)
+        subtitleFrameList = [frameStr for frameStr in subtitleFrameList if frameStr.strip()]
+        return subtitleFrameList
 
     def writeSubtitleTextToFile(self, subtitleTextStr, outputFolderPathStr=DEFAULT_OUTPUT_FOLDER_PATH_STR, preFixStr="", postFixStr=""):
         inputPathObj = Path(self.inputFilePathStr)
@@ -67,11 +79,5 @@ class SubtitleFileManager:
     def write(self, *args, **kwargs):
         return self.writeSubtitleTextToFile(*args, **kwargs)
 
-    def _splitIntoFrames(self, subtitleTextStr):
-        if not subtitleTextStr.strip():
-            return []
-        subtitleFrameList = re.findall(r".*?(?:\r?\n\r?\n+|$)", subtitleTextStr, flags=re.DOTALL)
-        subtitleFrameList = [frameStr for frameStr in subtitleFrameList if frameStr.strip()]
-        return subtitleFrameList
 
 

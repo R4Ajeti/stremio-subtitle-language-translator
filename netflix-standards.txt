@@ -1,0 +1,22 @@
+Netflix has specific, strict requirements for subtitle timing and line formatting to ensure a high-quality, comfortable viewing experience. The general requirements are designed to keep text readable without distracting from the visual content. 
+Here is a summary of Netflix's key rules for subtitle timing and formatting:
+Subtitle Timing
+Duration: Subtitles must be displayed for a minimum of 5/6 of a second and a maximum of 7 seconds.
+Gap: A minimum 2-frame gap is required between consecutive subtitles.
+Sync: Subtitles should sync with audio within 3 frames, though the out-time can be extended if needed for reading speed.
+Shot Changes: Subtitles should generally not cross shot changes.
+Reading Speed: Maximum characters per second (CPS) is 20 for adult programs and 17 for children's programs. 
+Subtitle Line Length and Treatment
+Lines: A maximum of two lines is allowed per subtitle.
+Characters: The recommended maximum is 42 characters per line, with exceptions like Korean at 23 characters.
+Line Breaks: Breaks in multi-line subtitles should be logical, occurring after punctuation, before conjunctions, or before prepositions. Avoid breaking between articles and nouns, adjectives and nouns, first and last names, or subjects and verb pronouns.
+Alignment & Position: Subtitles are typically center-justified at the bottom, moving to the top to avoid covering on-screen text.
+Dual Speakers: A hyphen followed by a space indicates two speakers, with one speaker per line.
+Font: White text is standard. 
+Additional Guidelines
+File Format: SRT
+Numbers: Write out numbers 1-10; use numerals for 11 and above.
+Currency: Do not convert currency.
+Foreign Words: Non-English words in a mostly English line should be italicized.
+
+

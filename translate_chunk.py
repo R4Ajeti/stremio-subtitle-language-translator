@@ -1,18 +1,29 @@
-import importlib
-import random
-import sys
 from pathlib import Path
+import importlib
+import sys
 
 
 from google_translate_automation import GoogleTranslateAutomation
 from subtitle_compliance_manager import SubtitleComplianceManager
+from subtitle_remote_fetcher import SubtitleRemoteFetcher
 from subtitle_file_manager import SubtitleFileManager
 
-from constants import USER_AGENT_LIST, DEFAULT_CHECK_FRAME_STR
+from constants import (
+    DEFAULT_CHECK_FRAME_STR,
+    DEFAULT_SAMPLE_INPUT_FILE_PATH_STR,
+    REMOTE_SUBTITLE_FORMAT_DEFAULT_STR,
+    REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR,
+)
 
-def getRandomUserAgent():
-    """Returns a random user agent from the list."""
-    return random.choice(USER_AGENT_LIST)
+AFFIRMATIVE_RESPONSE_LIST = ["y", "yes"]
+REMOTE_DOWNLOAD_PROMPT_STR = "Download subtitle via IMDb search? (y/n): "
+REMOTE_IMDB_PROMPT_STR = "Enter IMDb identifier (e.g., tt2085059): "
+REMOTE_SERIES_PROMPT_STR = "Is this a series episode? (y/n): "
+REMOTE_SEASON_PROMPT_STR = "Enter season number (leave blank for movie content): "
+REMOTE_EPISODE_PROMPT_STR = "Enter episode number (leave blank for movie content): "
+REMOTE_LANGUAGE_PROMPT_STR = "Enter subtitle language code (default en): "
+REMOTE_FORMAT_PROMPT_STR = "Enter subtitle format (default srt): "
+REMOTE_LOCAL_PATH_PROMPT_STR = "Provide a local subtitle path or press Enter to use the default sample: "
 
 def buildUsageMessage():
     return "Usage: python run.py \"input.srt\" [output_folder] [char_limit]"
@@ -22,6 +33,80 @@ def buildUsageMessage():
 #     if not charLimitArgStr:
 #         return DEFAULT_CHAR_LIMIT_INT
 #     return int(charLimitArgStr)
+
+
+def shouldDownloadSubtitleRemotely():
+    userChoiceStr = input(REMOTE_DOWNLOAD_PROMPT_STR).strip().lower()
+    return userChoiceStr in AFFIRMATIVE_RESPONSE_LIST
+
+
+def parseOptionalIntegerValue(rawValueStr, fieldNameStr):
+    strippedValueStr = rawValueStr.strip()
+    if not strippedValueStr:
+        return None
+    try:
+        return int(strippedValueStr)
+    except ValueError as valueErrorObj:
+        raise ValueError(f"{fieldNameStr} must be an integer.") from valueErrorObj
+
+
+def collectRemoteSubtitleCriteriaDict():
+    imdbIdStr = input(REMOTE_IMDB_PROMPT_STR).strip()
+    if not imdbIdStr:
+        raise ValueError("IMDb identifier is required to download subtitles.")
+    # seriesChoiceStr = input(REMOTE_SERIES_PROMPT_STR).strip().lower()
+    # isSeriesBool = seriesChoiceStr in AFFIRMATIVE_RESPONSE_LIST
+    seasonNumberInt = None
+    episodeNumberInt = None
+    
+    seasonInputStr = input(REMOTE_SEASON_PROMPT_STR)
+    if seasonInputStr:
+        episodeInputStr = input(REMOTE_EPISODE_PROMPT_STR)
+        seasonNumberInt = parseOptionalIntegerValue(seasonInputStr, "Season number")
+        episodeNumberInt = parseOptionalIntegerValue(episodeInputStr, "Episode number")
+    isSeriesBool = True if episodeNumberInt else False
+    
+    languageInputStr = input(REMOTE_LANGUAGE_PROMPT_STR).strip()
+    formatInputStr = input(REMOTE_FORMAT_PROMPT_STR).strip()
+    languageCodeStr = languageInputStr or REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR
+    formatTypeStr = formatInputStr or REMOTE_SUBTITLE_FORMAT_DEFAULT_STR
+    criteriaDict = {
+        "imdbIdStr": imdbIdStr,
+        "seasonNumberInt": seasonNumberInt,
+        "episodeNumberInt": episodeNumberInt,
+        "languageCodeStr": languageCodeStr,
+        "formatTypeStr": formatTypeStr,
+    }
+    return criteriaDict
+
+
+def downloadSubtitleViaRemoteSearch():
+    criteriaDict = collectRemoteSubtitleCriteriaDict()
+    subtitleRemoteFetcherObj = SubtitleRemoteFetcher()
+    downloadedFilePathStr = subtitleRemoteFetcherObj.downloadFirstAvailableSubtitle(
+        criteriaDict["imdbIdStr"],
+        seasonNumberInt=criteriaDict["seasonNumberInt"],
+        episodeNumberInt=criteriaDict["episodeNumberInt"],
+        languageCodeStr=criteriaDict["languageCodeStr"],
+        formatTypeStr=criteriaDict["formatTypeStr"],
+    )
+    print(f"Subtitle downloaded to {downloadedFilePathStr}")
+    return downloadedFilePathStr
+
+
+def resolveInputFilePathStr():
+    cliInputFilePathStr = sys.argv[1] if len(sys.argv) > 1 else ""
+    if cliInputFilePathStr:
+        return cliInputFilePathStr
+    if True or shouldDownloadSubtitleRemotely():
+        try:
+            return downloadSubtitleViaRemoteSearch()
+        except (ConnectionError, FileNotFoundError, ValueError) as remoteErrorObj:
+            print(f"Remote subtitle download failed: {remoteErrorObj}")
+    manualInputFilePathStr = input(REMOTE_LOCAL_PATH_PROMPT_STR).strip()
+    if manualInputFilePathStr:
+        return manualInputFilePathStr
+    return DEFAULT_SAMPLE_INPUT_FILE_PATH_STR
 
 
 def formatProgressBar(processedCountInt, totalCountInt, barWidthInt=30):
@@ -37,7 +122,8 @@ async def main(noDriverModuleObj):
     inputFilePathStr = sys.argv[1] if len(sys.argv) > 1 else ""
     outputPathArgStr = sys.argv[2] if len(sys.argv) > 2 else ""
     charLimitArgStr = sys.argv[3] if len(sys.argv) > 3 else ""
-    inputFilePathStr = inputFilePathStr if inputFilePathStr else "input/Black-Mirror-season-2/Black Mirror - 2x01 - Be Right Back.WEB-DL.FoV.en.srt"
+    inputFilePathStr = resolveInputFilePathStr()
+    print(f"Using input file: {inputFilePathStr}")
     if not inputFilePathStr:
         print(buildUsageMessage())
         return

@@ -3,12 +3,12 @@
 import random
 import re
 
-from constants import DEFAULT_TRANSLATE_URL_STR, SOURCE_TEXT_AREA_SELECTOR_STR, TARGET_TEXT_SELECTOR_STR, DEFAULT_CHECK_FRAME_STR, USER_AGENT_LIST, SUBTITLE_CHARACTER_PER_LINE_MIN_INT, SUBTITLE_CHARACTER_PER_LINE_MAX_INT
+from constants import DEFAULT_TRANSLATE_URL_STR, SOURCE_TEXT_AREA_SELECTOR_STR, TARGET_TEXT_SELECTOR_STR, DEFAULT_CHECK_FRAME_STR, USER_AGENT_LIST, SUBTITLE_CHARACTER_PER_LINE_MIN_INT, SUBTITLE_CHARACTER_PER_LINE_MAX_INT, USER_AGENT_LIST_NEW
 
 
 def getRandomUserAgent():
     """Returns a random user agent from the list."""
-    return random.choice(USER_AGENT_LIST)
+    return random.choice(USER_AGENT_LIST_NEW)
 
 
 noDriverInitParamDict = {
@@ -88,7 +88,7 @@ class GoogleTranslateAutomation:
     async def setSourceText(self, chunkStr):
             textAreaElement = await self.pageObj.find(SOURCE_TEXT_AREA_SELECTOR_STR, best_match=True, timeout=3)
             await textAreaElement.clear_input()
-            chunkStr = chunkStr.replace("\n", "\n\r")
+            chunkStr = chunkStr.replace("\n", "\r\n")
             await textAreaElement.send_keys(
                 chunkStr,
             )
@@ -112,7 +112,7 @@ class GoogleTranslateAutomation:
         for lineStr in currSubFrameBodyList:
             subFrameBodyList.append(await self.subFrameBodyLineProcess(lineStr))
         
-        return "\n".join(subFrameBodyList)
+        return '\n'.join(subFrameBodyList)
             
     async def subTimeCodeProcess(self, timeCodeStr):
         return timeCodeStr
@@ -142,13 +142,13 @@ class GoogleTranslateAutomation:
                 lastLineSFBFlag = False
             if subFrameLineStr:
                 subFrameBodyList.append(subFrameLineStr)
-        subFrameStr = "\n".join(subFrameBodyList)
+        subFrameStr = '\n'.join(subFrameBodyList)
         return subFrameStr
         
 
     async def readTranslatedText(self):
         translatedSpanList = await self.pageObj.find_all(TARGET_TEXT_SELECTOR_STR)
-        translatedSpanStr = "".join(span.text for span in translatedSpanList).strip()
+        translatedSpanStr = '\n'.join(span.text for span in translatedSpanList).strip()
         
         translatedBlockList = translatedSpanStr.split("\n\n")
         
