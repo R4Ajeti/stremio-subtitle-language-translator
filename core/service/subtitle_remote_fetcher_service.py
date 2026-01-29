@@ -1,22 +1,30 @@
 import json
-import random
 from pathlib import Path
-from urllib import error, parse, request
+from urllib import parse
 
-from constants import (
+from core.constant import (
     DEFAULT_INPUT_FOLDER_PATH_STR,
-    REMOTE_REQUEST_TIMEOUT_SECONDS_INT,
     REMOTE_SUBTITLE_FORMAT_DEFAULT_STR,
     REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR,
     SUBTITLE_SEARCH_ENDPOINT_STR,
-    USER_AGENT_LIST,
 )
 
+from core.service.subtitle_file_manager_service import SubtitleFileManagerService
+from core.proxy.basic_remote_proxy import BasicRemoteProxy
 
-class SubtitleRemoteFetcher:
-    def __init__(self, inputFolderPathStr=DEFAULT_INPUT_FOLDER_PATH_STR):
-        self.inputFolderPathObj = Path(inputFolderPathStr)
-        self.inputFolderPathObj.mkdir(parents=True, exist_ok=True)
+
+class SubtitleRemoteFetcherService:
+    def __init__(
+        self,
+        inputFolderPathStr=DEFAULT_INPUT_FOLDER_PATH_STR,
+        verboseBool=False,
+        requestTimeoutSecondsInt=None,
+    ):
+        self.subtitleFileManager = SubtitleFileManagerService(inputFolderPathStr)
+        self.remoteProxyObj = BasicRemoteProxy(
+            verboseBool=verboseBool,
+            requestTimeoutSecondsInt=requestTimeoutSecondsInt,
+        )
 
     def downloadFirstAvailableSubtitle(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None, languageCodeStr=REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR, formatTypeStr=REMOTE_SUBTITLE_FORMAT_DEFAULT_STR):
         subtitleDictList = self.fetchSubtitleDictList(imdbIdStr, seasonNumberInt, episodeNumberInt, languageCodeStr, formatTypeStr)
@@ -29,15 +37,13 @@ class SubtitleRemoteFetcher:
 
     def fetchSubtitleDictList(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None, languageCodeStr=REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR, formatTypeStr=REMOTE_SUBTITLE_FORMAT_DEFAULT_STR):
         requestUrlStr = self.buildSearchUrlStr(imdbIdStr, seasonNumberInt, episodeNumberInt, languageCodeStr, formatTypeStr)
-        requestHeadersDict = {"User-Agent": self.buildRandomUserAgentStr()}
-        requestObj = request.Request(requestUrlStr, headers=requestHeadersDict)
+        responseObj = self.remoteProxyObj.get(requestUrlStr)
+        if responseObj is None:
+            raise ConnectionError("Unable to complete subtitle search request.")
+        if not responseObj.ok:
+            raise ConnectionError("Subtitle search request failed.")
         try:
-            with request.urlopen(requestObj, timeout=REMOTE_REQUEST_TIMEOUT_SECONDS_INT) as responseObj:
-                responseBodyBytes = responseObj.read()
-        except error.URLError as errorObj:
-            raise ConnectionError("Unable to complete subtitle search request.") from errorObj
-        try:
-            subtitleDictList = json.loads(responseBodyBytes.decode("utf-8"))
+            subtitleDictList = json.loads(responseObj.text)
         except json.JSONDecodeError as jsonErrorObj:
             raise ValueError("Subtitle search response could not be parsed.") from jsonErrorObj
         if not isinstance(subtitleDictList, list):
@@ -66,14 +72,13 @@ class SubtitleRemoteFetcher:
         if not fileUrlStr:
             raise ValueError("Subtitle entry does not include a download url.")
         sanitizedFileNameStr = Path(destinationFileNameStr).name or self.buildDefaultFileNameStr("subtitle", REMOTE_SUBTITLE_FORMAT_DEFAULT_STR)
-        destinationPathObj = self.inputFolderPathObj / sanitizedFileNameStr
-        assetRequestHeadersDict = {"User-Agent": self.buildRandomUserAgentStr()}
-        assetRequestObj = request.Request(fileUrlStr, headers=assetRequestHeadersDict)
-        try:
-            with request.urlopen(assetRequestObj, timeout=REMOTE_REQUEST_TIMEOUT_SECONDS_INT) as responseObj:
-                destinationPathObj.write_bytes(responseObj.read())
-        except error.URLError as errorObj:
-            raise ConnectionError("Unable to download subtitle asset.") from errorObj
+        destinationPathObj = self.subtitleFileManager.inputFolderPathObj / sanitizedFileNameStr
+        responseObj = self.remoteProxyObj.get(fileUrlStr)
+        if responseObj is None:
+            raise ConnectionError("Unable to download subtitle asset.")
+        if not responseObj.ok:
+            raise ConnectionError("Subtitle asset download failed.")
+        destinationPathObj.write_bytes(responseObj.content)
         return str(destinationPathObj)
 
     def buildDefaultFileNameStr(self, imdbIdStr, formatTypeStr):
@@ -88,6 +93,3 @@ class SubtitleRemoteFetcher:
     def normalizeFormatTypeStr(self, formatTypeStr):
         sanitizedFormatTypeStr = (formatTypeStr or "").strip()
         return sanitizedFormatTypeStr or REMOTE_SUBTITLE_FORMAT_DEFAULT_STR
-
-    def buildRandomUserAgentStr(self):
-        return random.choice(USER_AGENT_LIST)

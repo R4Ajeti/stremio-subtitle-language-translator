@@ -2,13 +2,13 @@ from datetime import datetime
 from pathlib import Path
 import re
 
-from constants import DEFAULT_CHAR_LIMIT_INT, DEFAULT_OUTPUT_FOLDER_PATH_STR
+from core.constant import DEFAULT_CHAR_LIMIT_INT, DEFAULT_OUTPUT_FOLDER_PATH_STR
 
 
-class SubtitleFileManager:
+class SubtitleFileManagerService:
     emptyStr = ""
     newlineStr = "\n"
-    newlineDosStr = "\n\r"
+    newlineDosStr = "\r\n"
     
     def __init__(self, inputFilePathStr):
         self.inputFilePathStr = inputFilePathStr
@@ -16,13 +16,23 @@ class SubtitleFileManager:
         self.subtitleFrameList = []
         self.currentFrameIndexInt = 0
         
-        self.emptyStr = SubtitleFileManager.emptyStr
-        self.newlineStr = SubtitleFileManager.newlineStr
-        self.newlineDosStr = SubtitleFileManager.newlineDosStr
+        self.emptyStr = SubtitleFileManagerService.emptyStr
+        self.newlineStr = SubtitleFileManagerService.newlineStr
+        self.newlineDosStr = SubtitleFileManagerService.newlineDosStr
+        self.inputFilePathObj = Path(self.inputFilePathStr)
+        self.inputFolderParentNameStr = self.inputFilePathObj.parent
+        if self.inputFilePathObj.is_file():
+            self.inputFolderPathObj = self.inputFilePathObj.parent
+        else:
+            self.inputFolderPathObj = self.inputFilePathObj
+            self.inputFolderPathObj.mkdir(parents=True, exist_ok=True)
+        self.inputFileNameStr = self.inputFilePathObj.name
+        self.inputBaseNameStr = self.inputFilePathObj.stem
 
     def readSrtByFilename(self):
-        inputPathObj = Path(self.inputFilePathStr)
-        self.subtitleTextStr = inputPathObj.read_text(encoding="utf-8")
+        if not self.inputFilePathObj.is_file():
+            raise FileNotFoundError(f"Subtitle file not found: {self.inputFilePathObj}")
+        self.subtitleTextStr = self.inputFilePathObj.read_text(encoding="utf-8")
         if "\r\n" in self.subtitleTextStr:
             self.newlineStr = "\r\n"
         self.subtitleFrameList = self.splitIntoFrame(self.subtitleTextStr)
@@ -63,7 +73,6 @@ class SubtitleFileManager:
         return subtitleFrameList
 
     def writeSubtitleTextToFile(self, subtitleTextStr, outputFolderPathStr=DEFAULT_OUTPUT_FOLDER_PATH_STR, preFixStr="", postFixStr=""):
-        inputPathObj = Path(self.inputFilePathStr)
         outputFolderPathObj = Path(outputFolderPathStr)
         outputFolderPathObj.mkdir(parents=True, exist_ok=True)
         timestampStr = datetime.now().strftime("%Y-%m-%d--%H-%M")
@@ -71,7 +80,7 @@ class SubtitleFileManager:
             postFixStr = f"-{postFixStr}"
         if preFixStr:
             preFixStr = f"{preFixStr}-"
-        outputFileNameStr = f"{preFixStr}{inputPathObj.stem}{postFixStr}-{timestampStr}.srt"
+        outputFileNameStr = f"{preFixStr}{self.inputBaseNameStr}{postFixStr}-{timestampStr}.srt"
         outputFilePathObj = outputFolderPathObj / outputFileNameStr
         outputFilePathObj.write_text(f"{subtitleTextStr}", encoding="utf-8")
         return str(outputFilePathObj)

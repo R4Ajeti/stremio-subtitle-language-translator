@@ -1,9 +1,7 @@
-
-
 import random
 import re
 
-from constants import DEFAULT_TRANSLATE_URL_STR, SOURCE_TEXT_AREA_SELECTOR_STR, TARGET_TEXT_SELECTOR_STR, DEFAULT_CHECK_FRAME_STR, USER_AGENT_LIST, SUBTITLE_CHARACTER_PER_LINE_MIN_INT, SUBTITLE_CHARACTER_PER_LINE_MAX_INT, USER_AGENT_LIST_NEW
+from core.constant import DEFAULT_TRANSLATE_URL_STR, SOURCE_TEXT_AREA_SELECTOR_STR, TARGET_TEXT_SELECTOR_STR, DEFAULT_CHECK_FRAME_STR, USER_AGENT_LIST, SUBTITLE_CHARACTER_PER_LINE_MIN_INT, SUBTITLE_CHARACTER_PER_LINE_MAX_INT, USER_AGENT_LIST_NEW
 
 
 def getRandomUserAgent():
@@ -17,7 +15,7 @@ noDriverInitParamDict = {
     'browser_args': [f"--user-agent={getRandomUserAgent()}"],   
 }
 
-class GoogleTranslateAutomation:
+class GoogleTranslateWrapper:
     def __init__(self, noDriverModuleObj, translateUrlStr: str = DEFAULT_TRANSLATE_URL_STR):
         self.noDriverModuleObj = noDriverModuleObj
         self.translateUrlStr = translateUrlStr

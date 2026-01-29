@@ -27,7 +27,7 @@ NETFLIX_NUMBER_WORD_MAP_DICT = {
 }
 
 
-class SubtitleComplianceManager:
+class SubtitleComplianceService:
     """Enforces Netflix subtitle timing and formatting standards."""
 
     def __init__(self, isChildProgramObj=False, framesPerSecondInt=NETFLIX_FRAMES_PER_SECOND_INT):

@@ -1,2 +1,3 @@
 nodriver=0.48.1
-pandas
+pandas=3.0.0
+requests
