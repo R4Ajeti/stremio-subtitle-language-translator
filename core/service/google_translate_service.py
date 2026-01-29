@@ -105,7 +105,11 @@ class GoogleTranslateService:
     async def lineConstructSentence(self, lineStr):
         # if lineStr contain ['.', '!', '?'], we assume it's the end of a sentence and add a space after it.
         # in case it's already there, we don't add another space.
+        ellipsisTokenStr = "__ELLIPSIS__"
+        lineStr = lineStr.replace("...", ellipsisTokenStr)
         lineStr = re.sub(r'([.!?])(?!\s)', r'\1 ', lineStr)
+        lineStr = lineStr.replace(ellipsisTokenStr, "...")
+        lineStr = re.sub(r'\.\.\.(?!\s)', '... ', lineStr)
         lineStr = ' '.join(lineStr.split())
         return lineStr
     
