@@ -33,11 +33,22 @@ class SubtitleFileManagerService:
         if not self.inputFilePathObj.is_file():
             raise FileNotFoundError(f"Subtitle file not found: {self.inputFilePathObj}")
         self.subtitleTextStr = self.inputFilePathObj.read_text(encoding="utf-8")
+        if not self.isSrtContent(self.subtitleTextStr):
+            raise ValueError(f"File content is not valid SRT format: {self.inputFilePathObj}")
         if "\r\n" in self.subtitleTextStr:
             self.newlineStr = "\r\n"
         self.subtitleFrameList = self.splitIntoFrame(self.subtitleTextStr)
         self.currentFrameIndexInt = 0
         return self.subtitleTextStr
+
+    def isSrtContent(self, subtitleTextStr):
+        if not subtitleTextStr or not subtitleTextStr.strip():
+            return False
+        timecodeRegex = r"\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}"
+        pattern = re.compile(
+            rf"(?m)^\s*\d+\s*\n{timecodeRegex}\s*\n.+?"
+        )
+        return pattern.search(subtitleTextStr) is not None
 
     def getChunkGenerator(self, charLimitInt=DEFAULT_CHAR_LIMIT_INT):
         if not self.subtitleFrameList:

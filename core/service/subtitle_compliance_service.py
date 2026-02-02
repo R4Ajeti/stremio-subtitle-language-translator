@@ -120,6 +120,13 @@ class SubtitleComplianceService:
 
     def normalizeSubtitleBodyStr(self, subtitleTextLineList):
         normalizedTextList = [lineStr.strip() for lineStr in subtitleTextLineList if lineStr.strip()]
+        if not normalizedTextList:
+            return ""
+        # Check if any line starts with "-" (dual speaker format)
+        hasDualSpeakerBool = any(lineStr.startswith("-") for lineStr in normalizedTextList)
+        if hasDualSpeakerBool:
+            # Keep lines separate for dual speaker format
+            return "\n".join(normalizedTextList)
         normalizedBodyStr = " ".join(normalizedTextList)
         normalizedBodyStr = re.sub(r"\s+", " ", normalizedBodyStr)
         return normalizedBodyStr.strip()
@@ -135,6 +142,12 @@ class SubtitleComplianceService:
     def wrapTextIntoCompliantLineList(self, subtitleBodyStr):
         if not subtitleBodyStr:
             return []
+        # Check if it's dual speaker format (contains newlines with "-" prefixed lines)
+        if "\n" in subtitleBodyStr:
+            lineList = subtitleBodyStr.split("\n")
+            if any(lineStr.strip().startswith("-") for lineStr in lineList):
+                # Keep dual speaker lines as-is, just trim each line
+                return [lineStr.strip() for lineStr in lineList if lineStr.strip()]
         activeLineLimitInt = self.determineLineCharacterLimitInt(subtitleBodyStr)
         wrappedLineList = []
         activeLineWordList = []

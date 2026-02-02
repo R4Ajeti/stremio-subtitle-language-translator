@@ -1,5 +1,6 @@
 import importlib
 import sys
+import os
 
 from core.service.subtitle_remote_fetcher_service import SubtitleRemoteFetcherService
 from core.service.subtitle_file_manager_service import SubtitleFileManagerService
@@ -28,6 +29,8 @@ def formatProgressBar(processedCountInt, totalCountInt, barWidthInt=30):
     return f"[{barStr}] {processedCountInt}/{totalCountInt}"
 
 async def main(noDriverModuleObj):
+    
+    testFlag = False
 
     criteriaDict = {
         "imdbIdStr": "tt2085059",
@@ -37,18 +40,34 @@ async def main(noDriverModuleObj):
         "formatTypeStr": "srt",
     }
 
-    subtitleRemoteFetcherServiceObj = SubtitleRemoteFetcherService(
-        inputFolderPathStr="subtitle",
-        verboseBool=True,
-    )
+    downloadedFilePathStr = None
 
-    downloadedFilePathStr = subtitleRemoteFetcherServiceObj.downloadFirstAvailableSubtitle(
-        criteriaDict["imdbIdStr"],
-        seasonNumberInt=criteriaDict["seasonNumberInt"],
-        episodeNumberInt=criteriaDict["episodeNumberInt"],
-        indexInt=3,
-    )
-    print(f"Subtitle downloaded to {downloadedFilePathStr}")
+    if testFlag:
+        testInputFolderPathStr = "test-input"
+        if os.path.isdir(testInputFolderPathStr):
+            testSrtFileList = sorted(
+                fileNameStr
+                for fileNameStr in os.listdir(testInputFolderPathStr)
+                if fileNameStr.lower().endswith(".srt")
+            )
+            if testSrtFileList:
+                downloadedFilePathStr = os.path.join(
+                    testInputFolderPathStr, testSrtFileList[0]
+                )
+
+    if not downloadedFilePathStr:
+        subtitleRemoteFetcherServiceObj = SubtitleRemoteFetcherService(
+            inputFolderPathStr="subtitle",
+            verboseBool=True,
+        )
+
+        downloadedFilePathStr = subtitleRemoteFetcherServiceObj.downloadFirstAvailableSubtitle(
+            criteriaDict["imdbIdStr"],
+            seasonNumberInt=criteriaDict["seasonNumberInt"],
+            episodeNumberInt=criteriaDict["episodeNumberInt"],
+            indexInt=3,
+        )
+        print(f"Subtitle downloaded to {downloadedFilePathStr}")
 
     # ChromeForTestingUserAgentWrapper().generate()
 
@@ -76,6 +95,7 @@ async def main(noDriverModuleObj):
     if totalChunkCountInt:
         sys.stdout.write("\n")
         sys.stdout.flush()
+    processedChunkList = [chunkStr for chunkStr in processedChunkList if chunkStr is not None]
     processedSubtitleTextStr = f"{subtitleFileManagerObj.newlineStr}{subtitleFileManagerObj.newlineStr}".join(processedChunkList)
     processedSubtitleTextStr = processedSubtitleTextStr.replace(": ", ":")
     subtitleComplianceServiceObj = SubtitleComplianceService()

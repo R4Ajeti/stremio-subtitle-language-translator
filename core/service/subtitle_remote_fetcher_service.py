@@ -59,7 +59,7 @@ class SubtitleRemoteFetcherService:
         searchQueryDict = {
             "id": imdbIdentifierStr,
             "language": normalizedLanguageCodeStr,
-            "format": normalizedFormatTypeStr,
+            # "format": normalizedFormatTypeStr,
         }
         if seasonNumberInt is not None:
             searchQueryDict["season"] = seasonNumberInt
