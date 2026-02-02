@@ -36,7 +36,7 @@ class SubtitleRemoteFetcherService:
         return self.downloadSubtitleAsset(fileUrlStr, fileNameStr)
 
     def fetchSubtitleDictList(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None, languageCodeStr=REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR, formatTypeStr=REMOTE_SUBTITLE_FORMAT_DEFAULT_STR, retryLimitInt=3, intervalSecFloat=2.0):
-        requestUrlStr = self.buildSearchUrlStr(imdbIdStr, seasonNumberInt, episodeNumberInt, languageCodeStr, formatTypeStr)
+        requestUrlStr = self.buildSearchUrlStr(imdbIdStr, seasonNumberInt, episodeNumberInt)
         
         intervalSecFloat = 1
         retryLimitInt = 3
@@ -76,20 +76,34 @@ class SubtitleRemoteFetcherService:
                 else:
                     raise ValueError("Subtitle search returned empty list after all retries.")
             
-            return subtitleDictList
+            # Filter by language and format
+            normalizedLanguageCodeStr = self.normalizeLanguageCodeStr(languageCodeStr)
+            normalizedFormatTypeStr = self.normalizeFormatTypeStr(formatTypeStr)
+            
+            filteredSubtitleDictList = [
+                subtitleDict for subtitleDict in subtitleDictList
+                if subtitleDict.get("language", "").lower() == normalizedLanguageCodeStr.lower()
+                and subtitleDict.get("format", "").lower() == normalizedFormatTypeStr.lower()
+            ]
+            
+            if not filteredSubtitleDictList:
+                if attemptInt < retryLimitInt:
+                    print(f"No subtitles matching language='{normalizedLanguageCodeStr}' and format='{normalizedFormatTypeStr}', retrying ({attemptInt}/{retryLimitInt})...")
+                    time.sleep(intervalSecFloat)
+                    continue
+                else:
+                    raise ValueError(f"No subtitles found for language='{normalizedLanguageCodeStr}' and format='{normalizedFormatTypeStr}' after all retries.")
+            
+            return filteredSubtitleDictList
         
         raise ValueError("Subtitle search failed after all retries.")
 
-    def buildSearchUrlStr(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None, languageCodeStr=REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR, formatTypeStr=REMOTE_SUBTITLE_FORMAT_DEFAULT_STR):
+    def buildSearchUrlStr(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None):
         imdbIdentifierStr = imdbIdStr.strip()
         if not imdbIdentifierStr:
             raise ValueError("IMDb identifier is required for subtitle search.")
-        normalizedLanguageCodeStr = self.normalizeLanguageCodeStr(languageCodeStr)
-        normalizedFormatTypeStr = self.normalizeFormatTypeStr(formatTypeStr)
         searchQueryDict = {
             "id": imdbIdentifierStr,
-            # "language": normalizedLanguageCodeStr,
-            # "format": normalizedFormatTypeStr,
         }
         if seasonNumberInt is not None:
             searchQueryDict["season"] = seasonNumberInt
