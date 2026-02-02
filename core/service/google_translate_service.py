@@ -5,24 +5,7 @@ import json
 import re
 
 from core.constant import DEFAULT_TRANSLATE_URL_STR, SOURCE_TEXT_AREA_SELECTOR_STR, TARGET_TEXT_SELECTOR_STR, DEFAULT_CHECK_FRAME_STR, USER_AGENT_RANDOM_OUTPUT_PATH_STR
-from core import logger
-
-
-def getRandomUserAgent():
-    """Returns a random user agent from the list."""
-    randomUserAgentListPath = USER_AGENT_RANDOM_OUTPUT_PATH_STR
-    with open(randomUserAgentListPath, "r", encoding="utf-8") as file:
-        userAgentData = json.load(file)
-    randomUserAgent = random.choice(userAgentData['userAgents'])
-    logger.info(f"Random User Agent: {randomUserAgent}")
-    return randomUserAgent
-
-
-noDriverInitParamDict = {
-    'sandbox': False,
-    'user_data_dir': "./profile_cache",
-    'browser_args': [f"--user-agent={getRandomUserAgent()}"],   
-}
+from core.wrapper.user_agent_wrapper import ChromeForTestingUserAgentWrapper
 
 class GoogleTranslateService:
     def __init__(self, noDriverModuleObj, translateUrlStr: str = DEFAULT_TRANSLATE_URL_STR):
@@ -31,6 +14,7 @@ class GoogleTranslateService:
         self.browserObj = None
         self.pageObj = None
         self.previousTranslatedTextStr = ""
+        self.chromeForTestingUserAgentWrapper = ChromeForTestingUserAgentWrapper()
 
     def splitBySubTimeframe(self, translatedSpanStr: str):
         timecodePattern = re.compile(
@@ -65,12 +49,17 @@ class GoogleTranslateService:
                         pass
                     self.browserObj = None
                     self.pageObj = None
+                
+                
 
+                noDriverInitParamDict = {
+                    'sandbox': False,
+                    'user_data_dir': "./profile_cache",
+                    'browser_args': [f"--user-agent={self.chromeForTestingUserAgentWrapper.getRandomUserAgent()}"],   
+                }
+                
                 # Create a fresh copy of init params
                 currNoDriverInitParamDict = dict(noDriverInitParamDict)
-                currNoDriverInitParamDict["browser_args"] = [
-                    f"--user-agent={getRandomUserAgent()}"
-                ]
 
                 # Start nodriver
                 self.browserObj = await self.noDriverModuleObj.start(

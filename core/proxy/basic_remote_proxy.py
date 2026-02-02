@@ -20,7 +20,6 @@ class BasicRemoteProxy:
     requestTimeoutSecondsInt: int = REMOTE_REQUEST_TIMEOUT_SECONDS_INT
     defaultSubtitleFormatStr: str = REMOTE_SUBTITLE_FORMAT_DEFAULT_STR
     defaultSubtitleLanguageStr: str = REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR
-    userAgentListList: List[str] = USER_AGENT_LIST
 
     def __init__(
         self,
@@ -28,7 +27,6 @@ class BasicRemoteProxy:
         requestTimeoutSecondsInt: Optional[int] = None,
         defaultSubtitleFormatStr: Optional[str] = None,
         defaultSubtitleLanguageStr: Optional[str] = None,
-        userAgentListList: Optional[List[str]] = None,
     ):
         if verboseBool is not None:
             self.verboseBool = verboseBool
@@ -38,8 +36,7 @@ class BasicRemoteProxy:
             self.defaultSubtitleFormatStr = defaultSubtitleFormatStr
         if defaultSubtitleLanguageStr is not None:
             self.defaultSubtitleLanguageStr = defaultSubtitleLanguageStr
-        if userAgentListList is not None:
-            self.userAgentListList = userAgentListList
+        
 
 
     def log(self, messageStr: str) -> None:
@@ -48,8 +45,6 @@ class BasicRemoteProxy:
 
     def buildHeaders(self, headersDict: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         mergedHeadersDict: Dict[str, str] = {}
-        if self.userAgentListList:
-            mergedHeadersDict["User-Agent"] = random.choice(self.userAgentListList)
         if headersDict:
             mergedHeadersDict.update(headersDict)
         return mergedHeadersDict

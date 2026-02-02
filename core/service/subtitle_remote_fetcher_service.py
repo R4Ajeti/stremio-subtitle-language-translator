@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 from urllib import parse
 
@@ -10,8 +11,7 @@ from core.constant import (
 )
 
 from core.service.subtitle_file_manager_service import SubtitleFileManagerService
-from core.proxy.basic_remote_proxy import BasicRemoteProxy
-
+from core.wrapper.user_agent_wrapper import ChromeForTestingUserAgentWrapper
 
 class SubtitleRemoteFetcherService:
     def __init__(
@@ -21,7 +21,7 @@ class SubtitleRemoteFetcherService:
         requestTimeoutSecondsInt=None,
     ):
         self.subtitleFileManager = SubtitleFileManagerService(inputFolderPathStr)
-        self.remoteProxyObj = BasicRemoteProxy(
+        self.remoteProxyObj = ChromeForTestingUserAgentWrapper(
             verboseBool=verboseBool,
             requestTimeoutSecondsInt=requestTimeoutSecondsInt,
         )
@@ -35,20 +35,50 @@ class SubtitleRemoteFetcherService:
         fileNameStr = firstSubtitleDict.get("fileName") or self.buildDefaultFileNameStr(imdbIdStr, formatTypeStr)
         return self.downloadSubtitleAsset(fileUrlStr, fileNameStr)
 
-    def fetchSubtitleDictList(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None, languageCodeStr=REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR, formatTypeStr=REMOTE_SUBTITLE_FORMAT_DEFAULT_STR):
+    def fetchSubtitleDictList(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None, languageCodeStr=REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR, formatTypeStr=REMOTE_SUBTITLE_FORMAT_DEFAULT_STR, retryLimitInt=3, intervalSecFloat=2.0):
         requestUrlStr = self.buildSearchUrlStr(imdbIdStr, seasonNumberInt, episodeNumberInt, languageCodeStr, formatTypeStr)
-        responseObj = self.remoteProxyObj.get(requestUrlStr)
-        if responseObj is None:
-            raise ConnectionError("Unable to complete subtitle search request.")
-        if not responseObj.ok:
-            raise ConnectionError("Subtitle search request failed.")
-        try:
-            subtitleDictList = json.loads(responseObj.text)
-        except json.JSONDecodeError as jsonErrorObj:
-            raise ValueError("Subtitle search response could not be parsed.") from jsonErrorObj
-        if not isinstance(subtitleDictList, list):
-            raise ValueError("Subtitle search response was not a list.")
-        return subtitleDictList
+        
+        intervalSecFloat = 1
+        retryLimitInt = 3
+        attemptInt = 0
+        while attemptInt < retryLimitInt:
+            attemptInt += 1
+            responseObj = self.remoteProxyObj.get(requestUrlStr)
+            if responseObj is None:
+                raise ConnectionError("Unable to complete subtitle search request.")
+            if not responseObj.ok:
+                raise ConnectionError("Subtitle search request failed.")
+            
+            responseTextStr = responseObj.text.strip()
+            
+            # Retry if response is empty or just "{}"
+            if not responseTextStr or responseTextStr == "{}":
+                if attemptInt < retryLimitInt:
+                    print(f"Empty response, retrying ({attemptInt}/{retryLimitInt})...")
+                    time.sleep(intervalSecFloat)
+                    continue
+                else:
+                    raise ValueError("Subtitle search response was empty after all retries.")
+            
+            try:
+                subtitleDictList = json.loads(responseTextStr)
+            except json.JSONDecodeError as jsonErrorObj:
+                raise ValueError("Subtitle search response could not be parsed.") from jsonErrorObj
+            
+            if not isinstance(subtitleDictList, list):
+                raise ValueError("Subtitle search response was not a list.")
+            
+            if not subtitleDictList:
+                if attemptInt < retryLimitInt:
+                    print(f"Empty list response, retrying ({attemptInt}/{retryLimitInt})...")
+                    time.sleep(intervalSecFloat)
+                    continue
+                else:
+                    raise ValueError("Subtitle search returned empty list after all retries.")
+            
+            return subtitleDictList
+        
+        raise ValueError("Subtitle search failed after all retries.")
 
     def buildSearchUrlStr(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None, languageCodeStr=REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR, formatTypeStr=REMOTE_SUBTITLE_FORMAT_DEFAULT_STR):
         imdbIdentifierStr = imdbIdStr.strip()
@@ -58,7 +88,7 @@ class SubtitleRemoteFetcherService:
         normalizedFormatTypeStr = self.normalizeFormatTypeStr(formatTypeStr)
         searchQueryDict = {
             "id": imdbIdentifierStr,
-            "language": normalizedLanguageCodeStr,
+            # "language": normalizedLanguageCodeStr,
             # "format": normalizedFormatTypeStr,
         }
         if seasonNumberInt is not None:

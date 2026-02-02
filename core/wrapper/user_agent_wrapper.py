@@ -1,9 +1,11 @@
-import json
-import random
+
+from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+import random
+import json
 
+from core.proxy.basic_remote_proxy import BasicRemoteProxy
 from core.constant import (
 	CHROME_BUILD_SAMPLE_COUNT_INT,
 	CHROME_BUILD_SAMPLE_MAX_RANGE_INT,
@@ -12,7 +14,7 @@ from core.constant import (
 	USER_AGENT_MACHINE_LIST,
 	USER_AGENT_RANDOM_OUTPUT_PATH_STR,
 )
-from core.proxy.basic_remote_proxy import BasicRemoteProxy
+from core import logger
 
 
 @dataclass
@@ -26,7 +28,7 @@ class ChromeForTestingResult:
 	outputFilePathStr: str
 
 
-class ChromeForTestingUserAgentWrapper:
+class ChromeForTestingUserAgentWrapper(BasicRemoteProxy):
 	def __init__(
 		self,
 		remoteProxyObj: Optional[BasicRemoteProxy] = None,
@@ -96,6 +98,23 @@ class ChromeForTestingUserAgentWrapper:
 		outputPathObj.parent.mkdir(parents=True, exist_ok=True)
 		outputPathObj.write_text(json.dumps(payloadDict, indent=2, ensure_ascii=False))
 		return str(outputPathObj)
+
+	def request(
+        self,
+        methodStr: str,
+        urlStr: str,
+        **kwargsDict: Any,
+    ):
+		return super().request(methodStr, urlStr, headersDict={"User-Agent": self.getRandomUserAgent()}, **kwargsDict)
+
+	def getRandomUserAgent(self) -> str:
+		"""Returns a random user agent from the list."""
+		randomUserAgentListPath = USER_AGENT_RANDOM_OUTPUT_PATH_STR
+		with open(randomUserAgentListPath, "r", encoding="utf-8") as file:
+			userAgentData = json.load(file)
+		randomUserAgent = random.choice(userAgentData['userAgents'])
+		logger.info(f"Random User Agent: {randomUserAgent}")
+		return randomUserAgent
 
 	def generate(self) -> ChromeForTestingResult:
 		versionsDict = self._fetchJson(CHROME_LAST_KNOWN_GOOD_VERSIONS_URL_STR)

@@ -35,7 +35,7 @@ async def main(noDriverModuleObj):
     criteriaDict = {
         "imdbIdStr": "tt2085059",
         "seasonNumberInt": 3,
-        "episodeNumberInt": 1,
+        "episodeNumberInt": 3,
         "languageCodeStr": "en",
         "formatTypeStr": "srt",
     }
