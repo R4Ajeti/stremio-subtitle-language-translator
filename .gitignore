@@ -1,0 +1,14 @@
+
+# Ignore all input and output folders
+**/input/
+**/output/
+**/subtitle/
+**/everything/
+
+# Python cache
+__pycache__/
+*.pyc
+# Other common cache/temporary files
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
