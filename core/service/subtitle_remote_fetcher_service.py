@@ -26,11 +26,11 @@ class SubtitleRemoteFetcherService:
             requestTimeoutSecondsInt=requestTimeoutSecondsInt,
         )
 
-    def downloadFirstAvailableSubtitle(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None, languageCodeStr=REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR, formatTypeStr=REMOTE_SUBTITLE_FORMAT_DEFAULT_STR):
+    def downloadFirstAvailableSubtitle(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None, languageCodeStr=REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR, formatTypeStr=REMOTE_SUBTITLE_FORMAT_DEFAULT_STR, indexInt=0):
         subtitleDictList = self.fetchSubtitleDictList(imdbIdStr, seasonNumberInt, episodeNumberInt, languageCodeStr, formatTypeStr)
         if not subtitleDictList:
             raise FileNotFoundError("No subtitles available for the provided criteria.")
-        firstSubtitleDict = subtitleDictList[0]
+        firstSubtitleDict = subtitleDictList[indexInt]
         fileUrlStr = firstSubtitleDict.get("url") or ""
         fileNameStr = firstSubtitleDict.get("fileName") or self.buildDefaultFileNameStr(imdbIdStr, formatTypeStr)
         return self.downloadSubtitleAsset(fileUrlStr, fileNameStr)

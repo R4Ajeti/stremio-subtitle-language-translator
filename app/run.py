@@ -10,9 +10,6 @@ from core import levelOneHelper, levelTwoHelper, sayHiHelper
 from core import CORE_LOGGER_NAME, logger
 from core.constant import (
     DEFAULT_CHECK_FRAME_STR,
-    DEFAULT_SAMPLE_INPUT_FILE_PATH_STR,
-    REMOTE_SUBTITLE_FORMAT_DEFAULT_STR,
-    REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR,
 )
 
 
@@ -48,14 +45,12 @@ async def main(noDriverModuleObj):
     downloadedFilePathStr = subtitleRemoteFetcherServiceObj.downloadFirstAvailableSubtitle(
         criteriaDict["imdbIdStr"],
         seasonNumberInt=criteriaDict["seasonNumberInt"],
-        episodeNumberInt=criteriaDict["episodeNumberInt"]
+        episodeNumberInt=criteriaDict["episodeNumberInt"],
+        indexInt=3,
     )
     print(f"Subtitle downloaded to {downloadedFilePathStr}")
 
     # ChromeForTestingUserAgentWrapper().generate()
-
-
-    print()
 
     subtitleFileManagerObj = SubtitleFileManagerService(downloadedFilePathStr)
         

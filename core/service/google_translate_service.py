@@ -4,13 +4,13 @@ import random
 import json
 import re
 
-from core.constant import DEFAULT_TRANSLATE_URL_STR, SOURCE_TEXT_AREA_SELECTOR_STR, TARGET_TEXT_SELECTOR_STR, DEFAULT_CHECK_FRAME_STR, USER_AGENT_LIST, SUBTITLE_CHARACTER_PER_LINE_MIN_INT, SUBTITLE_CHARACTER_PER_LINE_MAX_INT
+from core.constant import DEFAULT_TRANSLATE_URL_STR, SOURCE_TEXT_AREA_SELECTOR_STR, TARGET_TEXT_SELECTOR_STR, DEFAULT_CHECK_FRAME_STR, USER_AGENT_RANDOM_OUTPUT_PATH_STR
 from core import logger
 
 
 def getRandomUserAgent():
     """Returns a random user agent from the list."""
-    randomUserAgentListPath = "random-user-agent-list.json"
+    randomUserAgentListPath = USER_AGENT_RANDOM_OUTPUT_PATH_STR
     with open(randomUserAgentListPath, "r", encoding="utf-8") as file:
         userAgentData = json.load(file)
     randomUserAgent = random.choice(userAgentData['userAgents'])
