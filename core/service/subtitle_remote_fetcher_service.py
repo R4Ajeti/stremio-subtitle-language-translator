@@ -35,6 +35,80 @@ class SubtitleRemoteFetcherService:
         fileNameStr = firstSubtitleDict.get("fileName") or self.buildDefaultFileNameStr(imdbIdStr, formatTypeStr)
         return self.downloadSubtitleAsset(fileUrlStr, fileNameStr)
 
+    def downloadTopThreeSubtitle(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None, languageCodeStr=REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR, formatTypeStr=REMOTE_SUBTITLE_FORMAT_DEFAULT_STR):
+        subtitleDictList = self.fetchSubtitleDictList(imdbIdStr, seasonNumberInt, episodeNumberInt, languageCodeStr, formatTypeStr)
+        topThreeSubtitleDictList = self.getThreeMostDifferentSubs(subtitleDictList)
+        
+        downloadedFilePathList = []
+        for subtitleIndexInt, subtitleDict in enumerate(topThreeSubtitleDictList):
+            fileUrlStr = subtitleDict.get("url") or ""
+            fileNameStr = subtitleDict.get("fileName") or self.buildDefaultFileNameStr(f"{imdbIdStr}_{subtitleIndexInt}", formatTypeStr)
+            try:
+                downloadedFilePathStr = self.downloadSubtitleAsset(fileUrlStr, fileNameStr)
+                downloadedFilePathList.append(downloadedFilePathStr)
+                print(f"Downloaded ({subtitleIndexInt + 1}/3): {downloadedFilePathStr}")
+            except Exception as errorObj:
+                print(f"Failed to download subtitle {subtitleIndexInt + 1}: {errorObj}")
+        
+        return downloadedFilePathList
+    
+    def getThreeMostDifferentSubs(self, subtitleList):
+        def extractSignature(sub):
+            releaseStr = (sub.get("release") or "").lower()
+            return {
+                "source": (
+                    "webdl" if "web-dl" in releaseStr else
+                    "webrip" if "webrip" in releaseStr else
+                    "hdtv" if "hdtv" in releaseStr else
+                    "other"
+                ),
+                "codec": (
+                    "x265" if "x265" in releaseStr or "hevc" in releaseStr else
+                    "x264" if "x264" in releaseStr else
+                    "other"
+                ),
+                "hearingImpaired": sub.get("isHearingImpaired", False),
+                "group": releaseStr.split("-")[-1] if "-" in releaseStr else releaseStr
+            }
+
+        signatures = []
+        for sub in subtitleList:
+            signatures.append({
+                "sub": sub,
+                "sig": extractSignature(sub)
+            })
+
+        def differenceScore(a, b):
+            score = 0
+            for key in a:
+                if a[key] != b[key]:
+                    score += 1
+            return score
+
+        selected = [signatures[0]]
+
+        while len(selected) < 3 and len(selected) < len(signatures):
+            bestCandidate = None
+            bestScore = -1
+
+            for candidate in signatures:
+                if candidate in selected:
+                    continue
+
+                score = sum(
+                    differenceScore(candidate["sig"], sel["sig"])
+                    for sel in selected
+                )
+
+                if score > bestScore:
+                    bestScore = score
+                    bestCandidate = candidate
+
+            if bestCandidate:
+                selected.append(bestCandidate)
+
+        return [item["sub"] for item in selected]
+
     def fetchSubtitleDictList(self, imdbIdStr, seasonNumberInt=None, episodeNumberInt=None, languageCodeStr=REMOTE_SUBTITLE_LANGUAGE_DEFAULT_STR, formatTypeStr=REMOTE_SUBTITLE_FORMAT_DEFAULT_STR, retryLimitInt=3, intervalSecFloat=2.0):
         requestUrlStr = self.buildSearchUrlStr(imdbIdStr, seasonNumberInt, episodeNumberInt)
         
