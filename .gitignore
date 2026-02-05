@@ -1,9 +1,10 @@
 
 # Ignore all input and output folders
 **/input/
-**/output/
+**/output**/
 **/subtitle/
 **/everything/
+**/profile_cache/
 
 # Python cache
 __pycache__/
