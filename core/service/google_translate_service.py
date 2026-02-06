@@ -134,12 +134,38 @@ class GoogleTranslateService:
     def removeBracketedContent(self, textStr):
         """
         Remove content inside square brackets including the brackets.
+        If a line has 2 or fewer letters after bracket removal, remove the entire line.
+        If only one dialogue line remains from multiple dash-prefixed lines,
+        remove the dash prefix since it's no longer a dialogue exchange.
+        
         Example: "- [burrë] Hej, Lacie!" -> "- Hej, Lacie!"
         Example: "[qeshje]" -> ""
+        Example: "-Want a cookie?\n-[man speaking Danish]" -> "Want a cookie?"
         """
-        # Remove all [...] patterns and clean up extra spaces
-        resultStr = re.sub(r'\s*\[[^\]]*\]\s*', ' ', textStr)
-        return resultStr.strip()
+        originalLineList = textStr.splitlines()
+        resultLineList = []
+        
+        for lineStr in originalLineList:
+            # Remove all [...] patterns and clean up extra spaces
+            cleanedLineStr = re.sub(r'\s*\[[^\]]*\]\s*', ' ', lineStr).strip()
+            # Only remove the line if it has NO letters at all (was purely bracketed content)
+            hasLetterFlag = any(charStr.isalpha() for charStr in cleanedLineStr)
+            if hasLetterFlag:
+                resultLineList.append(cleanedLineStr)
+        
+        # Count how many original lines started with a dash (dialogue lines)
+        dashOriginalCountInt = sum(
+            1 for lineStr in originalLineList
+            if lineStr.strip().startswith('-')
+        )
+        
+        # If originally had multiple dialogue lines but now only one remains,
+        # remove the dash prefix (no longer a dialogue exchange)
+        if dashOriginalCountInt > 1 and len(resultLineList) == 1:
+            if resultLineList[0].lstrip().startswith('-'):
+                resultLineList[0] = resultLineList[0].lstrip('-').strip()
+        
+        return '\n'.join(resultLineList)
     
     async def subFrameBodyProcess(self, subFrameBodyStr):
         subFrameBodyList = []
